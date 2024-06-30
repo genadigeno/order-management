@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  postgres-order:
+    image: postgres:13.11
+    container_name: postgres-order
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: genadi1993
+      POSTGRES_DB: order_management
+    ports:
+      - "15432:5432"
+    volumes:
+      - C:\\Users\\GENO\\Desktop\\docker_workspace\\postgres:/var/lib/postgresql/data
+      - .\\init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - gvg_group
+
+networks:
+  gvg_group:
+    driver: bridge
