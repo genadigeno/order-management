@@ -55,42 +55,42 @@ services:
       - POSTGRES_PASSWORD=secret
     volumes:
 #      - .\\docker_workspace\\postgres:/var/lib/postgresql/data
-      - .\\init.sql:/docker-entrypoint-initdb.d/init.sql
+      - .\\order_init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - gvg_net
-#  postgres-users:
-#    container_name: postgres-users
-#    image: "postgres:13.11"
-#    ports:
-#      - "5432:5432"
-#    environment:
-#      - POSTGRES_DB=user_management
-#      - POSTGRES_USER=postgres
-#      - POSTGRES_PASSWORD=secret
-#    volumes:
-#      #      - .\\docker_workspace\\postgres:/var/lib/postgresql/data
-#      - .\\init.sql:/docker-entrypoint-initdb.d/init.sql
-#    networks:
-#      - gvg_net
-#  user-management:
-#    container_name: user-management
-#    image: "genadigeno/user-management:latest"
-#    depends_on:
-#      - kafka-1
-#      - kafka-2
-#      - postgres-users
-#    environment:
-#      - SERVER_PORT=8282
-#      - KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092
-#      - KAFKA_USER_TOPIC_NAME=users.topic
-#      - KAFKA_USER_DLT_TOPIC_NAME=users.topic.dlt
-#      - POSTGRES_URL=jdbc:postgresql://postgres-users/user_management?currentSchema=gvggroup
-#      - POSTGRES_USER=postgres
-#      - POSTGRES_PASSWORD=secret
-#    ports:
-#      - "8282:8282"
-#    networks:
-#      - gvg_net
+  postgres-users:
+    container_name: postgres-users
+    image: "postgres:13.11"
+    ports:
+      - "25432:5432"
+    environment:
+      - POSTGRES_DB=user_management
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      #      - .\\docker_workspace\\postgres:/var/lib/postgresql/data
+      - .\\user_init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - gvg_net
+  user-management:
+    container_name: user-management
+    image: "genadigeno/user-management:latest"
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - postgres-users
+    environment:
+      - SERVER_PORT=8282
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092
+      - KAFKA_USER_TOPIC_NAME=users.topic
+      - KAFKA_USER_DLT_TOPIC_NAME=users.topic.dlt
+      - POSTGRES_URL=jdbc:postgresql://postgres-users/user_management?currentSchema=gvggroup
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+    ports:
+      - "8282:8282"
+    networks:
+      - gvg_net
   order-management:
     container_name: order-management
     image: "genadigeno/order-management:latest"
