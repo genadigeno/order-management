@@ -18,7 +18,7 @@ The project installation could be done using docker-compose.yml via command line
 ```
 git clone https://github.com/genadigeno/order-management.git
 cd order-management
-docker compose up
+docker compose up -d
 ```
 
 ### JVM Parameters
