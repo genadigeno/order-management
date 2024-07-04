@@ -15,11 +15,19 @@ In order to start up the application you need have installed:
 
 ### Installation steps
 The project installation could be done using docker-compose.yml via command line interface (CMD):
+Unix/Linux:
 ```
 git clone https://github.com/genadigeno/order-management.git &&
 cd order-management &&
 docker compose up
-``` 
+```
+Windows:
+```
+git clone https://github.com/genadigeno/order-management.git &&
+cd order-management &&
+docker compose up
+```
+
 ### JVM Parameters
 - `SERVER_PORT` - application port number, default: 8282
 - `KAFKA_BOOTSTRAP_SERVERS` - kafka cluster url, default: localhost:9092,localhost:9093
