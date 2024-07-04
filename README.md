@@ -15,16 +15,9 @@ In order to start up the application you need have installed:
 
 ### Installation steps
 The project installation could be done using docker-compose.yml via command line interface (CMD):
-Unix/Linux:
 ```
-git clone https://github.com/genadigeno/order-management.git &&
-cd order-management &&
-docker compose up
-```
-Windows:
-```
-git clone https://github.com/genadigeno/order-management.git &&
-cd order-management &&
+git clone https://github.com/genadigeno/order-management.git
+cd order-management
 docker compose up
 ```
 
