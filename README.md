@@ -11,13 +11,7 @@ To overcome Dual Writing problem we also implement Outbox pattern.
 ### Installation requirements
 In order to start up the application you need have installed:
 - Docker on you machine </br>
-- git </br>
-  or
-- Apache kafka cluster with at least two brokers
-- git
-- postgres DB 13+
-- gradle
-- JDK-17
+- git 
 
 ### Installation steps
 The project installation could be done using docker-compose.yml via command line interface (CMD):
@@ -25,14 +19,7 @@ The project installation could be done using docker-compose.yml via command line
 git clone https://github.com/genadigeno/order-management.git &&
 cd order-management &&
 docker compose up
-```
-or
-```
-git clone https://github.com/genadigeno/order-management.git &&
-cd order-management &&
-./gradleview clean bootJar &&
-java -jar ./build/libs/order-management.jar
-```
+``` 
 ### JVM Parameters
 - `SERVER_PORT` - application port number, default: 8282
 - `KAFKA_BOOTSTRAP_SERVERS` - kafka cluster url, default: localhost:9092,localhost:9093
