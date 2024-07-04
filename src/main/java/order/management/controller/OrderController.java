@@ -9,12 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import order.management.dto.OrderDto;
 import order.management.dto.PageDto;
 import order.management.dto.http.OrderRequest;
+import order.management.dto.http.OrderResponse;
 import order.management.service.OrderService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/api/orders")
 @RequiredArgsConstructor
 @Slf4j
 //TODO: Add JWT Token description
@@ -44,7 +45,7 @@ public class OrderController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, description = "",
             content = @Content(schema = @Schema(anyOf = OrderRequest.class)))
     @PostMapping
-    public String create(@Validated @RequestBody OrderRequest request){
+    public OrderResponse create(@Validated @RequestBody OrderRequest request){
         return orderService.createOrder(request);
     }
 

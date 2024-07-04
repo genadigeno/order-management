@@ -1,21 +1,118 @@
 version: "3.8"
 
 services:
-  postgres-order:
-    image: postgres:13.11
-    container_name: postgres-order
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:7.5.0
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: genadi1993
-      POSTGRES_DB: order_management
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - gvg_net
+  kafka-1:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-1
+    depends_on:
+      - zookeeper
+    ports:
+      - "19092:19092"
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - gvg_net
+  kafka-2:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-2
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - gvg_net
+  postgres-orders:
+    container_name: postgres-orders
+    image: "postgres:13.11"
     ports:
       - "15432:5432"
+    environment:
+      - POSTGRES_DB=order_management
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
     volumes:
-      - C:\\Users\\GENO\\Desktop\\docker_workspace\\postgres:/var/lib/postgresql/data
+#      - .\\docker_workspace\\postgres:/var/lib/postgresql/data
       - .\\init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - gvg_group
+      - gvg_net
+#  postgres-users:
+#    container_name: postgres-users
+#    image: "postgres:13.11"
+#    ports:
+#      - "5432:5432"
+#    environment:
+#      - POSTGRES_DB=user_management
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_PASSWORD=secret
+#    volumes:
+#      #      - .\\docker_workspace\\postgres:/var/lib/postgresql/data
+#      - .\\init.sql:/docker-entrypoint-initdb.d/init.sql
+#    networks:
+#      - gvg_net
+#  user-management:
+#    container_name: user-management
+#    image: "genadigeno/user-management:latest"
+#    depends_on:
+#      - kafka-1
+#      - kafka-2
+#      - postgres-users
+#    environment:
+#      - SERVER_PORT=8282
+#      - KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092
+#      - KAFKA_USER_TOPIC_NAME=users.topic
+#      - KAFKA_USER_DLT_TOPIC_NAME=users.topic.dlt
+#      - POSTGRES_URL=jdbc:postgresql://postgres-users/user_management?currentSchema=gvggroup
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_PASSWORD=secret
+#    ports:
+#      - "8282:8282"
+#    networks:
+#      - gvg_net
+  order-management:
+    container_name: order-management
+    image: "genadigeno/order-management:latest"
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - postgres-orders
+    environment:
+      - SERVER_PORT=8181
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092
+      - KAFKA_ORDER_TOPIC_NAME=orders.topic
+      - KAFKA_ORDER_DLT_TOPIC_NAME=orders.topic.dlt
+      - KAFKA_SUCCESSFUL_ORDER_TOPIC_NAME=orders.success.topic
+      - KAFKA_FAILED_ORDER_TOPIC_NAME=orders.failed.topic
+      - POSTGRES_URL=jdbc:postgresql://postgres-orders/order_management?currentSchema=gvggroup
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+    ports:
+      - "8181:8181"
+    networks:
+      - gvg_net
 
 networks:
-  gvg_group:
+  gvg_net:
     driver: bridge

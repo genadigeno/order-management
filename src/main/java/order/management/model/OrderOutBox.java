@@ -1,38 +1,26 @@
 package order.management.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "order_requests", schema = "gvggroup")
+@Table(name = "orders_outbox_table", schema = "gvggroup")
 @EntityListeners(AuditingEntityListener.class)
 @Getter @Setter
-@NamedEntityGraph(name = "order_requests", attributeNodes = @NamedAttributeNode("order"))
-public class OrderRequestJob {
+public class OrderOutBox {
     @Id
     @GeneratedValue
     private int id;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "order_id")
-//    @JsonManagedReference
     private Order order;
-
-    @Enumerated(EnumType.STRING)
-    private RequestStatus status;
 
     @CreatedDate
     private LocalDateTime created;
-
-    @LastModifiedDate
-    private LocalDateTime modified;
-
-    private String info;
 }

@@ -36,7 +36,7 @@ public class Order {
     private Status status;
 
     @OneToMany(mappedBy="order", cascade=CascadeType.ALL, orphanRemoval=true)
-    @JsonBackReference
+//    @JsonBackReference
     private List<OrderRequestJob> orderRequests;
 
     private BigDecimal price;

@@ -5,7 +5,6 @@ import com.hazelcast.map.IMap;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import order.management.exception.InsufficientQuantityException;
 import order.management.model.Product;
 import order.management.repository.ProductRepository;
 import org.springframework.stereotype.Service;
@@ -35,5 +34,14 @@ public class ProductService {
 
     private IMap<Integer, Product> getProductCacheMap(){
         return hazelcastInstance.getMap("productCache");
+    }
+
+    public int getQuantity(int productId) {
+        log.info("fetching product[{}] quantity", productId);
+        return productRepository.findQuantityById(productId);
+    }
+
+    public void decreaseQuantity(int productId, int requiredQuantity) {
+        productRepository.decreaseQuantity(productId, requiredQuantity);
     }
 }

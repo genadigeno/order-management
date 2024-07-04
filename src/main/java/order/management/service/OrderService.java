@@ -7,16 +7,17 @@ import lombok.extern.slf4j.Slf4j;
 import order.management.dto.PageDto;
 import order.management.dto.OrderDto;
 import order.management.dto.http.OrderRequest;
+import order.management.dto.http.OrderResponse;
 import order.management.exception.InsufficientQuantityException;
 import order.management.exception.OrderNotFoundException;
-import order.management.model.Order;
-import order.management.model.Product;
+import order.management.model.*;
+import order.management.repository.OrderOutBoxRepository;
 import order.management.repository.OrderRepository;
+import order.management.repository.OrderRequestRepository;
 import order.management.utils.OrderMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -25,19 +26,21 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderService {
-    private final HazelcastInstance hazelcastInstance;
     private final OrderRepository orderRepository;
+    private final OrderOutBoxRepository orderOutBoxRepository;
+    private final OrderRequestRepository orderRequestRepository;
 
     private final ProductService productService;
-    private final OrderRequestService orderRequestService;
+    private final NotificationService notificationService;
+    private final CacheService cacheService;
 
-    private IMap<String, Order> getOrderCacheMap(){
-        return hazelcastInstance.getMap("orderCache");
-    }
+
 
     public PageDto getMyOrders(int size, int page) {
         log.info("Get user's orders request for page {} with size {}", page, size);
-        Page<OrderDto> orders = orderRepository.findAll(PageRequest.of(page, size)).map(OrderMapper::map);
+        Page<Order> orderPage = orderRepository.findAll(PageRequest.of(page, size));
+        Page<OrderDto> orders = orderPage.map(OrderMapper::map);
+
         return PageDto.builder()
                 .data(orders.getContent())
                 .total(orders.getTotalElements())
@@ -47,16 +50,15 @@ public class OrderService {
     public OrderDto getMyOrder(String id) {
         log.info("Get user's order request for order id {}", id);
 
-        IMap<String, Order> cache = getOrderCacheMap();
         log.info("Retrieving from cache...");
-        Order order = cache.get(id);
+        Order order = cacheService.getFromCache(id);
 
         if (order == null) {
             log.info("Cache is empty. Retrieving from database...");
             order = orderRepository.findById(UUID.fromString(id))
                     .orElseThrow(() -> new OrderNotFoundException(id));
 
-            cache.put(id, order);
+            cacheService.putIntoCache(id, order);
             log.info("Inserted into cache.");
         }
 
@@ -64,9 +66,8 @@ public class OrderService {
     }
 
     //TODO: test atomicity
-    //TODO: explain why isolation level is READ_COMMITTED
-    @Transactional(isolation = Isolation.READ_COMMITTED)
-    public String createOrder(OrderRequest request) {
+    @Transactional
+    public OrderResponse createOrder(OrderRequest request) {
         //1st step: find requested product
         log.info("Creating order. Starting 1st step...");
         Product product = productService.getAvailableProduct(request.getProductId());
@@ -84,16 +85,47 @@ public class OrderService {
         order.setUserId(defineUser());
         order = orderRepository.save(order);
 
-        getOrderCacheMap().put(order.getId().toString(), order);
-        log.info("Inserted into cache");
-
         log.info("2nd step finished and starting 3rd step...");
 
         //3rd step:   create an order request job
-        orderRequestService.createOrderRequestJob(order);
+        createOrderRequestJob(order);
         log.info("3rd step finished. Order created");
 
-        return "order placed for id: "+order.getId();
+        //insert into outbox table
+        saveToOutBoxTable(order);
+
+        //different transaction scope
+        sendEvent(order);
+
+        return OrderResponse.builder()
+                .message("order placed")
+                .orderId(order.getId().toString())
+                .build();
+    }
+
+    private void createOrderRequestJob(Order order) {
+        OrderRequestJob job = new OrderRequestJob();
+        job.setStatus(RequestStatus.REQUESTED);
+        job.setInfo("Pending for approval");
+        job.setOrder(order);
+        orderRequestRepository.save(job);
+        log.info("Order request job created with default status");
+    }
+
+    private void saveToOutBoxTable(Order order) {
+        log.info("Inserting into outbox table...");
+        OrderOutBox orderOutBox = new OrderOutBox();
+        orderOutBox.setOrder(order);
+        orderOutBoxRepository.save(orderOutBox);
+    }
+
+    private void sendEvent(Order order){
+        log.info("Sending order creation event...");
+        try {
+            notificationService.sendOrderCreationEvent(order);
+        } catch (Exception e) {
+            log.error("notification error", e);
+        }
     }
 
     //TODO
@@ -102,8 +134,7 @@ public class OrderService {
     }
 
     public String update(String id, OrderRequest request) {
-        IMap<String, Order> cache = getOrderCacheMap();
-        Order order = cache.get(id);
+        Order order = cacheService.getFromCache(id);
 
         if (order == null) {
             log.info("Cache is empty. Retrieving from database...");
@@ -121,19 +152,28 @@ public class OrderService {
         order = orderRepository.save(order);
         log.info("User's order with order id {} has been updated", id);
 
-        cache.put(order.getId().toString(), order);
+        cacheService.putIntoCache(order.getId().toString(), order);
         log.info("Inserted into cache");
 
         return "order updated for id: "+id;
     }
 
+    @Transactional
     public String deleteMyOrder(String id) {
-        orderRepository.deleteById(UUID.fromString(id));
+        UUID orderId = UUID.fromString(id);
+        orderRepository.deleteById(orderId);
         log.info("User's order with order id {} has been deleted", id);
 
-        getOrderCacheMap().delete(id);
+        log.info("removing from outbox table...");
+        orderOutBoxRepository.deleteByOrder(orderId);
+
+        cacheService.removeFromCache(id);
         log.info("Removed from cache");
 
         return "order deleted for id: "+id;
+    }
+
+    public void saveOrder(Order order) {
+        orderRepository.save(order);
     }
 }

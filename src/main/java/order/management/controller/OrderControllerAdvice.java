@@ -48,6 +48,13 @@ public class OrderControllerAdvice extends ResponseEntityExceptionHandler {
         return buildErrorResponse(ex, request, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(RuntimeException.class)
+    protected ErrorDto handleRuntimeException(RuntimeException ex, WebRequest request) {
+        log.error(ex.getLocalizedMessage(), ex);
+        return buildErrorResponse(ex, request, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(OrderNotFoundException.class)
     protected ErrorDto handleOrderNotFoundException(OrderNotFoundException ex, WebRequest request) {

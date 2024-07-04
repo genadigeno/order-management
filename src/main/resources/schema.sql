@@ -1,3 +1,6 @@
+CREATE SCHEMA IF NOT EXISTS gvggroup
+    AUTHORIZATION postgres;
+
 create table gvggroup.products (
     id integer not null,
     created timestamp(6),
